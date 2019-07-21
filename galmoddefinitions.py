@@ -8,6 +8,9 @@
     k_G = sqrt( G * M / c ^2)
     vc = velocity normalization constant in km/s
 
+    All the functions defined here can be found described in:
+    M. Dominik, 2005.	arXiv:astro-ph/0507540
+
     '''
 import numpy as np
 from astropy import constants as const
