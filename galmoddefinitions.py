@@ -14,6 +14,7 @@
     '''
 import numpy as np
 from astropy import constants as const
+from astropy import units as u
 
 #constants + vc
 NEWTON_G = const.G.value
@@ -351,3 +352,35 @@ def probte(file, column, nbins=32):
     prob_val = cumdev(cumulative/len(tesamples), base[:-1])
     x_axis = base[:-1]
     return x_axis, prob_val
+
+### derived definitions
+#############################
+def thetae_func(samples):
+    """ Returns the Einstein angle in microarcseconds.
+    Input:
+        samples : Input numpy array containing Mass in solar mass,
+        the ratios of the lens distance and source distance in parsecs
+        and  the distance to the source in parsecs.
+        This could also be a 2d array where each column is  mass, ratios
+        and source distance.
+
+    Output:
+        Einstein Angle in microarcseconds
+
+    """
+    if len(samples.shape) > 1:
+        m_vec = samples[:, 0]
+        x_vec = samples[:, 1]
+        ds_vec = samples[:, 2]
+    else:
+        m_vec, x_vec, ds_vec = samples[[0, 1, 2]]
+    ds_au = (ds_vec*u.pc).to(u.au)
+    pirel = ((1/x_vec)-1)*(1.*u.au/(ds_au))
+    pirel = pirel*u.radian
+    pirel = pirel.to(u.microarcsecond)
+    thetae = 713*(10**m_vec/0.5)**(1/2)*(pirel.value/125)**(1/2)
+    if len(samples.shape) > 1:
+        return thetae.reshape(len(samples), 1)
+    else:
+        return thetae
+        
