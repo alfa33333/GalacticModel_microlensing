@@ -383,4 +383,30 @@ def thetae_func(samples):
         return thetae.reshape(len(samples), 1)
     else:
         return thetae
+
+def einrad_func(samples):
+    """ Returns the Einstein radius in Astronomical Units.
+    Input:
+        samples : Input numpy array containing Mass in solar mass,
+        the ratios of the lens distance and source distance in parsecs
+        and  the distance to the source in parsecs.
+        This could also be a 2d array where each column is  mass, ratios
+        and source distance.
+
+    Output:
+        Einstein radius in Astronomical Units
+
+    """
+    if len(samples.shape) > 1:
+        m_vec = samples[:, 0]
+        x_vec = samples[:, 1]
+        ds_vec = samples[:, 2]
+    else:
+        m_vec, x_vec, ds_vec = samples[[0, 1, 2]]
+    einrad = np.sqrt(((10**m_vec)/0.5)*(ds_vec/8000)*(x_vec*(1-x_vec)/0.25))
+    einrad = 2.85*einrad
+    if len(samples.shape) > 1:
+        return einrad.reshape(len(samples), 1)
+    else:
+        return einrad
         
