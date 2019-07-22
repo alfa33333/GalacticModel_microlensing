@@ -35,16 +35,17 @@ class NestedSampling():
         fig2, _ = dyplot.cornerplot(self.res, color='blue', \
                                 truth_color='black', show_titles=True, \
                                 max_n_ticks=3, quantiles=None)
-        fig.savefig('./evidence.png')
-        fig1.savefig('./tracers.png')
-        fig2.savefig('./cornerplot.png')
+        fig.savefig('./output/evidence.png')
+        fig1.savefig('./output/tracers.png')
+        fig2.savefig('./output/cornerplot.png')
+
 ################################################################
 class NestedEmcee:
     """Class with a short Nested sampling followed by an Emcee run."""
     def __init__(self, filesamples, nbins=20, column=6, prefix='Emcee', defaul_labels=None):
         self.xval, self.val = probte(filesamples, column, nbins)
         self.res = None
-        self.plotprefix = prefix
+        self.plotprefix = "./output/"+prefix
         if defaul_labels is None:
             self.labels = ['ogm', 'x', 'Ds', 'Vs']
         else:
