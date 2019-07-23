@@ -66,7 +66,7 @@ class NestedEmcee:
         if (-2 <= variables[0] <= 1.8) and  (0 < variables[1] <= 1) \
             and (0 < variables[2] <= 11000) and (0 < variables[3] <= 10):
             thetae = thetae_func(variables)
-            if 8000 > thetae >= 72.27:
+            if 8000 > thetae >= 69.32849364791288:
                 output_log = likemod.logprob_sourcenorm(variables, self.xval, self.val)
                 return output_log
             else:
