@@ -3,7 +3,11 @@ import numpy as np
 import galmoddefinitions as galfunc
 
 X_SOURCE = np.linspace(0, 1, 10000)
-SIGMA_SOURCE_T = galfunc.source_bulge(X_SOURCE, 11000) + galfunc.source_disc(X_SOURCE, 11000)
+SIGMA_SOURCE_T = galfunc.source_bulge(X_SOURCE, 11000) #+ galfunc.source_disc(X_SOURCE, 11000)
+DCHI2 = np.loadtxt('./deltachi2.dat')
+
+def gaussianfit(x, a, mean, sigma):
+    return a * np.exp(-((x - mean)**2 / (2 * sigma**2)))
 
 def te_ds(mass, norm_vel, x_ratios, source_distance, te_einstein, gamma, sigma_total, \
     xval, val):
@@ -78,7 +82,7 @@ def te_ds_norm(mass, norm_vel, x_ratios, source_distance, te_einstein, gamma, si
     """Returns the probability of a sampled value T_E by weighting from the
     T_E probability distribution of the data. It trys to normalize z = 1."""
     if min(xval) < te_einstein <= max(xval):
-        omegac = gamma*norm_vel*np.sqrt(x_ratios*(1.-x_ratios))*(mass)**(-1./2.)
+        omegac = gamma*norm_vel*np.sqrt(x_ratios*(1.-x_ratios))*(mass)**(-1./2.)*mass*np.log(10)
         pte = np.interp(te_einstein, xval, val)
 #             print(pte)
 #             print(probulge_ds(omegac,source_distance,mass,norm_vel,x_ratios,\
@@ -87,13 +91,24 @@ def te_ds_norm(mass, norm_vel, x_ratios, source_distance, te_einstein, gamma, si
 # sigma_total,var = "unfixed"))
 #             print(Big_phi_source(source_distance,SIGMA_SOURCE_T))
         prob = (galfunc.probulge_ds(omegac, source_distance, mass, norm_vel, x_ratios, \
-            sigma_total, var="unfixed")+ \
+            sigma_total, var="unfixed")*np.exp(41.637)+ \
                 galfunc.probdisk_ds(omegac, source_distance, mass, norm_vel, x_ratios, \
-                    sigma_total, var="unfixed"))/np.exp(-39.552)
+                    sigma_total, var="unfixed")*np.exp(43.294))/2
+        #prob = galfunc.probulge_ds(omegac, source_distance, mass, norm_vel, x_ratios, sigma_total, var="unfixed")
+        #prob = galfunc.probdisk_ds(omegac, source_distance, mass, norm_vel, x_ratios, sigma_total, var="unfixed")
         prob2 = galfunc.big_phi_source(source_distance, SIGMA_SOURCE_T)*pte
 #             print('interal' , prob)
 #             print('interal2' , prob2)
-        return prob*prob2
+        thetae = galfunc.thetae_func(np.array([np.log10(mass), x_ratios, source_distance]))
+        theta_star = 0.78
+        rho = theta_star/thetae
+        if rho > DCHI2[-1, 0]:
+            prho = np.exp(-1000/2)
+        else:
+            prho = np.exp(-np.interp(rho, DCHI2[:, 0], DCHI2[:, 1])/2)
+            #secweight = gaussianfit(rho, 2.51900968e+02, 1.11613198e-02, 1.20265723e-03)
+            #prho = secweight*prho
+        return prob*prob2*prho
     else:
         return 0.
 
