@@ -127,20 +127,21 @@ def voz(lr_angle, br_angle):
 def vly(x_ratio, distance_source, lr_angle, br_angle):
     """ Returns y component for lens velocity of reference v_0"""
     lens_dist = x_ratio*distance_source
-    return vcirc(big_radius(x_ratio, lr_angle, br_angle))*(8.5e3*np.cos(np.radians(lr_angle))-\
-        lens_dist*np.cos(np.radians(br_angle)))/big_radius(x_ratio, lr_angle, br_angle)
+    return vcirc(big_radius(lens_dist, lr_angle, br_angle))*(8.5e3*np.cos(np.radians(lr_angle))-\
+        lens_dist*np.cos(np.radians(br_angle)))/big_radius(lens_dist, lr_angle, br_angle)
 
-def vlz(x_ratio, lr_angle, br_angle):
+def vlz(x_ratio, distance_source, lr_angle, br_angle):
     """ Returns z component for lens velocity of reference v_0"""
-    vel_circ = vcirc(big_radius(x_ratio, lr_angle, br_angle))
-    cyl_distance_radius = big_radius(x_ratio, lr_angle, br_angle)
+    lens_dist = x_ratio*distance_source
+    vel_circ = vcirc(big_radius(lens_dist, lr_angle, br_angle))
+    cyl_distance_radius = big_radius(lens_dist, lr_angle, br_angle)
     radi_project = 8.5e3*np.sin(np.radians(lr_angle))*np.sin(np.radians(br_angle))
     return vel_circ*radi_project/cyl_distance_radius
 
 def v0abs(x_ratio, distance_source, lr_angle, br_angle):
     """ Returns the norm for the velocity reference v_0"""
     vy_comp = vly(x_ratio, distance_source, lr_angle, br_angle) - (1.-x_ratio)*voy(lr_angle)
-    vz_comp = vlz(x_ratio, lr_angle, br_angle) - (1.-x_ratio)*voz(lr_angle, br_angle)
+    vz_comp = vlz(x_ratio, distance_source, lr_angle, br_angle) - (1.-x_ratio)*voz(lr_angle, br_angle)
     #vy = - (1.-x)*voy(lr_angle,b)
     #vz = - (1.-x)*voz(lr_angle,b)
     return np.sqrt(vy_comp**2+vz_comp**2)
@@ -175,7 +176,7 @@ def varbulgebulge(x_ratio, bulge):
 
 def varbulgedisc(x_ratio, bulge, disc):
     """ Returns the totals velocity dispersion of a disk lens with a bulge source """
-    return np.sqrt(bulge**2*x_ratio**2 + disc**2)
+    return np.sqrt((bulge**2)*(x_ratio**2) + disc**2)
 
 #disk in km/s
 VEL0_MEAN = 220.
@@ -185,8 +186,8 @@ DISK_VAR_NORM = VEL_DISP_DISK/vc
 #bulge in km/s
 BULGE_MEAN_VEL = 0.
 BULGE_MEAN_VEL_NORM = BULGE_MEAN_VEL/vc
-VEL_DISP_DISK = 100.
-BULGE_VAR_NORM = VEL_DISP_DISK/vc
+VEL_DISP_BULGE = 100.
+BULGE_VAR_NORM = VEL_DISP_BULGE/vc
 
 def genpowlaw(base, arg, power):
     """Generic power law with inverse power:
@@ -221,7 +222,7 @@ def logmass_spectrum_disc(log10_mass):
     elif (np.log10(log10_mass) >= 0.0) and (np.log10(log10_mass) < 0.54):
         matchconst = 0.239785
         return intconst*matchconst*genpowlaw(log10_mass, 1, 4.37)
-    elif (np.log10(log10_mass >= 0.54)) and (np.log10(log10_mass) < 1.26):
+    elif (np.log10(log10_mass) >= 0.54) and (np.log10(log10_mass) < 1.26):
         matchconst = 0.0843766
         return intconst*matchconst*genpowlaw(log10_mass, 1, 3.53)
     elif (np.log10(log10_mass) >= 1.26) and (np.log10(log10_mass) <= 1.8):
@@ -284,7 +285,7 @@ def probulge_ds(omega, distance_source, mass, xi_var, x_ratios, sigma_total, var
         density_probability = big_phi(x_ratios, distance_source, sigma_total, 'bulge')
         return omega*density_probability*velocity_norm*spectrum
     else:
-        varbulge = varbulgebulge(x_ratios, VEL_DISP_DISK)/vc
+        varbulge = varbulgebulge(x_ratios, VEL_DISP_BULGE)/vc
 #         print('var',varbulge)
 #         print('big',big_phi(x_ratios,distance_source,sigma_total,'bulge'))
 #         print('vel',np.log(phi_vel_s(xi_var,bulge_mean_vel_norm,varbulge)))
@@ -302,7 +303,7 @@ def probdisk_ds(omega, distance_source, mass, xi_var, x_ratios, sigma_total, var
 
         the variance by variable var can be chosen to be 'fixed' or 'unfixed'
     """
-    normvelo0_disp = v0abs(x_ratios, distance_source, 358.38852549, -3.31374594)
+    normvelo0_disp = v0abs(x_ratios, distance_source, 358.38852549, -3.31374594)/vc
     #print(big_phi(x_ratios,distance_source,sigma_total,'disk'))
     #print(phi_vel_s(xi_var,normvelo0_disp,DISK_VAR_NORM))
     #print(logmass_spectrum_disc(mass)/(mass*np.log(10)))
@@ -316,7 +317,7 @@ def probdisk_ds(omega, distance_source, mass, xi_var, x_ratios, sigma_total, var
         density_probability = big_phi(x_ratios, distance_source, sigma_total, 'disk')
         return omega*density_probability*velocity_norm*spectrum
     else:
-        vardisc = varbulgedisc(x_ratios, VEL_DISP_DISK, VEL_DISP_DISK)/vc
+        vardisc = varbulgedisc(x_ratios, VEL_DISP_BULGE, VEL_DISP_DISK)/vc
         #print(vardisc)
         #return omega*big_phi(x_ratios,distance_source,sigma_total,'disk')*\
         # phi_vel_s(xi_var,normvelo0_disp,vardisc)*\
@@ -325,6 +326,7 @@ def probdisk_ds(omega, distance_source, mass, xi_var, x_ratios, sigma_total, var
         velocity_norm = phi_vel_s(xi_var, normvelo0_disp, vardisc)
         density_probability = big_phi(x_ratios, distance_source, sigma_total, 'disk')
         return omega*density_probability*velocity_norm*spectrum
+        #return density_probability*velocity_norm*spectrum
 
 #samples reconstruction
 def cumdev(data, x_points):
@@ -358,7 +360,7 @@ def probte(file, column, nbins=32):
 def thetae_func(samples):
     """ Returns the Einstein angle in microarcseconds.
     Input:
-        samples : Input numpy array containing Mass in solar mass,
+        samples : Input numpy array containing log10(Mass/solar mass),
         the ratios of the lens distance and source distance in parsecs
         and  the distance to the source in parsecs.
         This could also be a 2d array where each column is  mass, ratios
