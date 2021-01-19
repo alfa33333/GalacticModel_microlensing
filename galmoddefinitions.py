@@ -13,19 +13,9 @@
 
     '''
 import numpy as np
-from astropy import constants as const
+#from astropy import constants as const
 from astropy import units as u
 from galmod_constants import *
-
-#constants + vc
-NEWTON_G = const.G.value
-c = const.c.value # pylint: disable=invalid-name
-M_sun = const.M_sun.value # pylint: disable=invalid-name
-GM_sun = const.GM_sun.value # pylint: disable=invalid-name
-OMEGA0 = 2.0
-k_G = np.sqrt(GM_sun/c**2) # pylint: disable=invalid-name
-vc = 100  # pylint: disable=invalid-name
-
 
 def density_bulge(d_lens):
     """ Calculates the density for the Bulge for a particular lens distance.
@@ -36,7 +26,7 @@ def density_bulge(d_lens):
             density_bulge_out : density of the bulge.
     """
 
-    r0_center = 8500
+    r0_center = GALACTIC_CENTER
     lr_angle = np.radians(LR_ANGLE_EVENT)
     br_angle = np.radians(BR_ANGLE_EVENT)
     xl_distance = d_lens*np.cos(lr_angle)*np.cos(br_angle)-r0_center
@@ -179,16 +169,6 @@ def varbulgedisc(x_ratio, bulge, disc):
     """ Returns the totals velocity dispersion of a disk lens with a bulge source """
     return np.sqrt((bulge**2)*(x_ratio**2) + disc**2)
 
-#disk in km/s
-VEL0_MEAN = 220.
-NORMVEL0_DISP = VEL0_MEAN/vc
-VEL_DISP_DISK = 30.
-DISK_VAR_NORM = VEL_DISP_DISK/vc
-#bulge in km/s
-BULGE_MEAN_VEL = 0.
-BULGE_MEAN_VEL_NORM = BULGE_MEAN_VEL/vc
-VEL_DISP_BULGE = 100.
-BULGE_VAR_NORM = VEL_DISP_BULGE/vc
 
 def genpowlaw(base, arg, power):
     """Generic power law with inverse power:
@@ -495,7 +475,7 @@ def probability_rich_argument(mu_gal, dl_pc, mass, theta_ein, sourcelens_populat
     constant_two = constant_one*(theta_ein*u.mas)*(np.linalg.norm(mu_gal)*(u.mas/u.yr))**3
     trans_vel = (dl_pc*u.pc) *mu_gal*(u.mas/u.yr)
     trans_vel = trans_vel.to(u.rad*u.km/u.s)
-    pi_rel_rad = pi_rel(theta_ein, mass) 
+    pi_rel_rad = pi_rel(theta_ein, mass)
     parallax_lens = (pi_rel_rad*u.rad).to(u.mas)/(theta_ein*u.mas)
     x_ratio = x_ratio_calc(dl_pc, pi_rel_rad)
     dl_au = (dl_pc*u.pc).to(u.AU)

@@ -3,7 +3,7 @@ Constants for the galactic model
 """
 
 import numpy as np
-
+from astropy import constants as const
 ###########################################
 # Angles of location of particular event
 # This must be changed according to the
@@ -14,8 +14,33 @@ BR_ANGLE_EVENT = 2.6072
 #
 ############################################
 
+############################################
+# Constants for Bayesian likelihood
+############################################
+
+NEWTON_G = const.G.value
+c = const.c.value # pylint: disable=invalid-name
+M_sun = const.M_sun.value # pylint: disable=invalid-name
+GM_sun = const.GM_sun.value # pylint: disable=invalid-name
+OMEGA0 = 2.0
+k_G = np.sqrt(GM_sun/c**2) # pylint: disable=invalid-name
+vc = 100  # pylint: disable=invalid-name
+GALACTIC_CENTER = 8500
+#disk in km/s
+VEL0_MEAN = 220.
+NORMVEL0_DISP = VEL0_MEAN/vc
+VEL_DISP_DISK = 30.
+DISK_VAR_NORM = VEL_DISP_DISK/vc
+#bulge in km/s
+BULGE_MEAN_VEL = 0.
+BULGE_MEAN_VEL_NORM = BULGE_MEAN_VEL/vc
+VEL_DISP_BULGE = 100.
+BULGE_VAR_NORM = VEL_DISP_BULGE/vc
 
 
+############################################
+# Constants for probability approximation
+############################################
 KAPPA_CONST = 8.14 # in mas/M_solar
 
 # Dispersion values are in km s^-1
