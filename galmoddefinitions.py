@@ -15,6 +15,7 @@
 import numpy as np
 from astropy import constants as const
 from astropy import units as u
+from galmod_constants import *
 
 #constants + vc
 NEWTON_G = const.G.value
@@ -36,8 +37,8 @@ def density_bulge(d_lens):
     """
 
     r0_center = 8500
-    lr_angle = np.radians(358.38852549)
-    br_angle = np.radians(-3.31374594)
+    lr_angle = np.radians(LR_ANGLE_EVENT)
+    br_angle = np.radians(BR_ANGLE_EVENT)
     xl_distance = d_lens*np.cos(lr_angle)*np.cos(br_angle)-r0_center
     yl_distance = d_lens*np.sin(lr_angle)*np.cos(br_angle)
     zl_distance = d_lens*np.sin(br_angle)
@@ -59,8 +60,8 @@ def density_disc_lens(d_lens):
             density : the density of lenses at input distance.
     """
     r0_center = 8500
-    lr_angle = np.radians(358.38852549)
-    br_angle = np.radians(-3.31374594)
+    lr_angle = np.radians(LR_ANGLE_EVENT)
+    br_angle = np.radians(BR_ANGLE_EVENT)
     zl_distance = d_lens*np.sin(br_angle)
     radius_cyl_dist = r0_center*np.sqrt((np.cos(lr_angle)-d_lens*np.cos(br_angle)/r0_center)**2+\
         np.sin(lr_angle)**2)
@@ -355,6 +356,171 @@ def probte(file, column, nbins=32):
     x_axis = base[:-1]
     return x_axis, prob_val
 
+#############################
+# Rich Argument Definitions
+#############################
+
+def pi_rel(theta_ein, mass):
+    """ Return the value of pi_rel
+    input:
+        theta_ein: Einstein angle in microarcseconds
+        mass: Mass in solar masses
+    ouput:
+        pi_rel_rad: value of source-lens relative parallax in rad
+    """
+    pi_rel_mas = (theta_ein**2/(KAPPA_CONST*mass))*u.mas
+    pi_rel_rad = pi_rel_mas.to(u.rad)
+    return  pi_rel_rad.value
+
+def x_ratio_calc(dl_pc, pi_rel_rad):
+    """ returns the x = Dl/Ds ratio from the lens distance and the parallax
+    input:
+        dl_pc:  lens distance in parsecs
+        pi_rel_rad: relative parallax in radians
+    output:
+        ratio Dl/Ds = 1 - DL*pi_rel/AU
+    """
+    dl_au = (dl_pc*u.pc).to(u.AU)
+    return (1.0 - dl_au*pi_rel_rad/u.AU).value
+
+def proper_motion_galactic(mu_hel_north, mu_hel_east, shiftangle=GALROT_ANGLE):
+    """ Returns the proper motion ( mu) in galactic coordinates in mas/yr.
+    input:
+        mu_hel_north: proper motion North component in celestial heliocentric
+                coordinates in mass/year.
+        mu_hel_east: proper motion Easth component in celestial heliocentric
+                coordinates in mass/year.
+        shiftangle: rotation angle in degrees.
+    output:
+        [ mu_north_gal, mu_easth_gal ] : proper motion North and East
+                components as a numpy array in galactic coordinates.
+    """
+    mu_abs = np.linalg.norm([mu_hel_north, mu_hel_east])
+    mu_angle = np.arctan2(mu_hel_north, mu_hel_east)
+
+    mu_angle_gal = mu_angle - (shiftangle*np.pi/180.0)
+    mu_north_gal = mu_abs * np.cos(mu_angle_gal)
+    mu_east_gal = mu_abs * np.sin(mu_angle_gal)
+    return np.array([mu_north_gal, mu_east_gal])
+
+def sigma_vectorx(x_ratio, sourcelens_population):
+    """ Returns the dispersion vector (N,E)  according to the chosen population.
+    input:
+        x_ratio : Distances ration Dl/Ds
+        sourcelens_population: The desired population.
+        'BB' for Bulge-Bulge
+        'BD' for Bulge-Disk
+        'DD' for Disk-Disk
+    Returns:
+        sigma_x: Dictionary holding the dispersion in 'N' and 'E' .
+    """
+    sigma_x = {'N': 0, 'E': 0}
+    if sourcelens_population == 'BB':
+        sigma_x['N'] = np.sqrt(1 + x_ratio**2) * DISPERSION_BULGE['N']
+        sigma_x['E'] = sigma_x['N']
+    elif sourcelens_population == 'BD':
+        sigma_x['N'] = np.sqrt(DISPERSION_DISC['N']**2 + DISPERSION_BULGE['N']**2 * x_ratio**2)
+        sigma_x['E'] = np.sqrt(DISPERSION_DISC['E']**2 + DISPERSION_BULGE['E']**2 * x_ratio**2)
+    elif sourcelens_population == 'DD':
+        sigma_x['N'] = np.sqrt(1 + x_ratio**2) * DISPERSION_DISC['N']
+        sigma_x['E'] = np.sqrt(1 + x_ratio**2) * DISPERSION_DISC['E']
+    return sigma_x
+
+def velocityvector_exp(x_ratio, sourcelens_population):
+    """ Returns the expectation velocity vector (N,E)  according to the chosen population.
+    input:
+        float x_ratio : Distances ration Dl/Ds. float
+        string sourcelens_population: The desired population.
+        'BB' for Bulge-Bulge
+        'BD' for Bulge-Disk
+        'DD' for Disk-Disk
+    Returns:
+        numpy array velvector_exp: Expectation velocity vector in 'N' and 'E' .
+                                    VL + x * VS - (1 - x)*(V_SUN + V_EARTH)
+    """
+    velvector_observer = VEL_SUN + VEL_EARTH
+    velvector_exp = np.array([0.0, 0.0])
+    if sourcelens_population == 'BB':
+        velvector_exp = VEL_BULGE - x_ratio * VEL_BULGE - (1.0 - x_ratio) * velvector_observer
+    elif sourcelens_population == 'BD':
+        velvector_exp = VEL_DISK - x_ratio * VEL_BULGE - (1.0 - x_ratio) * velvector_observer
+    elif sourcelens_population == 'DD':
+        velvector_exp = VEL_DISK - x_ratio * VEL_DISK - (1.0 - x_ratio) * velvector_observer
+    return velvector_exp
+
+def proper_motion_distribution(trans_vel, dl_pc, x_ratio, sourcelens_population):
+    """ Returns the proper motion distribution mu  according to the chosen population.
+        Dimensionless. The proper motion must be in galactocentric coordinates
+    input:
+        float trans_vel : Transverse velocity defined as Dl*proper_motion in km/s
+        float DL_pc: Distance to the lens in pc
+        float x_ratio : Distances ration Dl/Ds.
+        string sourcelens_population: The desired population.
+        'BB' for Bulge-Bulge
+        'BD' for Bulge-Disk
+        'DD' for Disk-Disk
+    Returns:
+        float pro_mot_distr: proper motion distribution in (yr/mas)^2
+    """
+    dl_km = (dl_pc*u.pc).to(u.km).value
+    sigma_north = sigma_vectorx(x_ratio, sourcelens_population)['N']
+    sigma_east = sigma_vectorx(x_ratio, sourcelens_population)['E']
+    norm_constant = dl_km**2 / (2 * np.pi * sigma_north * sigma_east)
+    north_comp = (trans_vel[0]-velocityvector_exp(x_ratio, sourcelens_population)[0])**2
+    north_comp = north_comp/(2.0*sigma_north**2)
+    east_comp = (trans_vel[1]-velocityvector_exp(x_ratio, sourcelens_population)[1])**2
+    east_comp = east_comp/(2.0*sigma_east**2)
+    pro_mot_distr = norm_constant * np.exp(-north_comp-east_comp)
+    pro_mot_distr = pro_mot_distr*(u.s**2/u.rad**2)
+    return pro_mot_distr.to((u.yr/u.mas)**2).value
+
+def probability_rich_argument(mu_gal, dl_pc, mass, theta_ein, sourcelens_population='BB'):
+    """ Returns the probability estimate for the Rich argument. In astropy quantity
+    format with units rad^2/yr
+    input:
+        mu_gal: proper motion in galactic coordinates as [N, E].
+        dl_pc: Lens distance in parsecs.
+        mass: lens mass in solar masses.
+        theta_ein: Einstein angle in milliarcseconds.
+        sourcelens_population (optional): The desired population.
+        'BB' for Bulge-Bulge
+        'BD' for Bulge-Disk
+        'DD' for Disk-Disk
+    output:
+        probability.to(u.rad**2/u.yr): probability estimate for the Rich argument in
+        rad^2/yr alias yr^-1.
+    """
+    #arrangement of physical units for distributions.
+    constant_one = 2.0/u.AU
+    constant_two = constant_one*(theta_ein*u.mas)*(np.linalg.norm(mu_gal)*(u.mas/u.yr))**3
+    trans_vel = (dl_pc*u.pc) *mu_gal*(u.mas/u.yr)
+    trans_vel = trans_vel.to(u.rad*u.km/u.s)
+    pi_rel_rad = pi_rel(theta_ein, mass) 
+    parallax_lens = (pi_rel_rad*u.rad).to(u.mas)/(theta_ein*u.mas)
+    x_ratio = x_ratio_calc(dl_pc, pi_rel_rad)
+    dl_au = (dl_pc*u.pc).to(u.AU)
+
+    #distribution calculation
+    mu_distr = proper_motion_distribution(trans_vel.value, dl_pc, x_ratio, sourcelens_population)
+    mu_distr = mu_distr * (u.yr/u.mas)**2
+    mass_correction = 1.0/(mass*u.M_sun*np.log(10))
+    if sourcelens_population == 'BB':
+        mass_density = density_bulge(dl_pc) * (u.M_sun/u.kpc**3)
+        mass_function = mass_correction * logmass_spectrum_bulge(mass)
+    elif sourcelens_population in ('BD', 'DD'):
+        mass_density = density_disc_lens(dl_pc) * (u.M_sun/u.kpc**3)
+        mass_function = mass_correction * logmass_spectrum_disc(mass)
+
+    #probability product
+    probability = (mass_density.to(u.M_sun/u.AU**3)) * (dl_au)**3
+    probability = probability*(mass_function)*(mu_distr)
+    probability = probability*(dl_au/parallax_lens)
+    probability = constant_two * probability
+
+    return probability.to(u.rad**2/u.yr)
+
+
+#############################
 ### derived definitions
 #############################
 def thetae_func(samples):
