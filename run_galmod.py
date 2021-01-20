@@ -7,13 +7,8 @@ import sys
 from multiprocessing import Pool, cpu_count
 import dynesty
 import numpy as np
-import samplingbulge as priorbulge
-import samplingdisk as priordisk
+from prior_definitions import prior_transform_bulge, prior_transform_disk, save_obj
 import galmoddefinitions as galfunc
-
-
-import pickle
-
 
 tE_best = 6.274
 tE_error = 0.057
@@ -41,7 +36,7 @@ def loglike(sampled_val):
     te_einstein = (1./86400)*re0c*eta/(galfunc.vc*1000.)
     weight = (1/(tE_error*np.sqrt(2*np.pi)))*np.exp(-(te_einstein-tE_best)**2/(2*tE_error**2))
 #     thetae = galfunc.thetae_func(np.array([np.log10(mass), x_ratios, source_distance]))
-#     theta_star = 16.2 
+#     theta_star = 16.2
 #     if thetae == 0.0:
 #         rho = 10000000
 #     else:
@@ -65,7 +60,7 @@ def improved_run(prior_function, population_name, dlogz=0.1, ndim=6, npdim=4):
         sampler.run_nested(dlogz=dlogz, print_progress=True)#logl_max = -1e-10,dlogz = 1e-20)
         res = sampler.results
         res.summary()
-        priorbulge.save_obj(res, './output/weighted_'+population_name+'_te')
+        save_obj(res, './output/weighted_'+population_name+'_te')
 
 def main(parameters):
     """
@@ -78,10 +73,10 @@ def main(parameters):
     print('Population lens: {}'.format(population))
     print('Sampler parameters: dlogz = {}, ndim = {}, npdim = {}'.format(dlogz, ndim, npdim))
     if population == 'disc':
-        improved_run(prior_function=priordisk.prior_transform_disk, population_name='disc', \
+        improved_run(prior_function=prior_transform_disk, population_name='disc', \
             dlogz=0.1, ndim=6, npdim=4)
     elif population == 'bulge':
-        improved_run(prior_function=priorbulge.prior_transform_bulge, population_name='bulge',\
+        improved_run(prior_function=prior_transform_bulge, population_name='bulge',\
             dlogz=0.1, ndim=6, npdim=4)
         # improved_run_bulge(dlogz=dlogz, ndim=ndim, npdim=npdim)
 

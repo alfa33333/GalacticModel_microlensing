@@ -1,13 +1,22 @@
+"""
+    File containing the the prior definitions for Bayesian Analysis.
+"""
 import pickle
 import numpy as np
 import galmoddefinitions as galfunc
-
+from galmod_constants import vc, VEL_DISP_DISK, VEL_DISP_BULGE, LR_ANGLE_EVENT, BR_ANGLE_EVENT
 
 def save_obj(obj, name):
+    """
+    Method to save pickle objects.
+    """
     with open(name + '.pkl', 'wb') as file:
         pickle.dump(obj, file, pickle.HIGHEST_PROTOCOL)
 
 def load_obj(name):
+    """
+    Method to load pickle objects.
+    """
     with open(name + '.pkl', 'rb') as file:
         return pickle.load(file)
 
@@ -25,6 +34,18 @@ xpdfsource = np.load('./sourcedenxpdf.npy')
 #lenses density
 X_LENSES = np.linspace(0, 1, 1000)
 def densitycdf(source_point):
+    """ Numerically calculation of the CDF for the density mass function
+    input:
+        source_point: Source distance in pc
+    output:
+        cdftotal: CDF for the combined disc and bulge dnesities
+        cdfbulge: CDF for the bulge density
+        kbulge: density of the lense given a source position
+                for the bulge component
+        cdfdisc:  CDF for the disc density
+        kdisc: density of the lense given a source position
+                for the disc component
+    """
     kbulge = galfunc.sigma_bulge(X_LENSES, source_point)
     kdisc = galfunc.sigma_disc(X_LENSES, source_point)
     k_bulge = kbulge/(kbulge+kdisc)
@@ -32,35 +53,36 @@ def densitycdf(source_point):
     pdfbulge = galfunc.big_phi(X_LENSES, source_point, kbulge, 'bulge')
     pdfdisc = galfunc.big_phi(X_LENSES, source_point, kdisc, 'disk')
     pdf_total = (k_bulge*pdfbulge + k_disc*pdfdisc)
-    # pdf_Bulge = k_bulge*pdfbulge
-    # pdf_disc  = k_disc*pdfdisc
     cdftotal = np.zeros_like(X_LENSES)
     cdfbulge = np.zeros_like(X_LENSES)
     cdfdisc = np.zeros_like(X_LENSES)
-    for i in enumerate(X_LENSES):
+    for i in range(len(X_LENSES)):
         cdftotal[i] = np.trapz(pdf_total[0:i], X_LENSES[0:i])
         cdfbulge[i] = np.trapz(pdfbulge[0:i], X_LENSES[0:i])
         cdfdisc[i] = np.trapz(pdfdisc[0:i], X_LENSES[0:i])
     return cdftotal, cdfbulge, kbulge, cdfdisc, kdisc
 
 def invdensitycdf(evalpoint, source_point):
+    """ Numerical inverse density CDF^-1(x)
+    Input:
+        evalpoint: fraction x = DL/DS to evaluate the density.
+        source_point: source position in pc.
+    Ouput:
+        invtotal: Inverse CDF for combined density bulge + disc
+        invbulge: Inverse CDF for bulge density
+        invdisc: Inverse CDF for disc density
+        kbulge: density of the lense given a source position
+                for the bulge component
+        kdisc: density of the lense given a source position
+                for the disc component
+
+    """
     cdftotal, cdfbulge, kbulge, cdfdisc, kdisc = densitycdf(source_point)
     invtotal = np.interp(evalpoint, cdftotal, X_LENSES)
     invbulge = np.interp(evalpoint, cdfbulge, X_LENSES)
     invdisc = np.interp(evalpoint, cdfdisc, X_LENSES)
     return invtotal, invbulge, invdisc, kbulge, kdisc
 
-vc = 100
-#disk in km/s
-VEL0_MEAN = 220.
-NORMVEL0_DISP = VEL0_MEAN/vc
-VEL_DISP_DISK = 30.
-DISK_VAR_NORM = VEL_DISP_DISK/vc
-#bulge in km/s
-BULGE_MEAN_VEL = 0.
-BULGE_MEAN_VEL_NORM = BULGE_MEAN_VEL/vc
-VEL_DISP_BULGE = 100.
-BULGE_VAR_NORM = VEL_DISP_BULGE/vc
 xi_var = np.linspace(0, 10, 1000)
 phi_vel_vector = np.vectorize(galfunc.phi_vel_s)
 
@@ -75,7 +97,7 @@ def cdfvel(x_ratio, source, population='bulge'):
         cdfvel_vec: vector containing the CDF values.
     """
     if population == 'disk':
-        normvelo0_disp = galfunc.v0abs(x_ratio, source, 359.56732242, 3.21595828)/vc
+        normvelo0_disp = galfunc.v0abs(x_ratio, source, LR_ANGLE_EVENT, BR_ANGLE_EVENT)/vc
         vardisc = galfunc.varbulgedisc(x_ratio, VEL_DISP_BULGE, VEL_DISP_DISK)/vc
         velocity_vec = phi_vel_vector(xi_var, normvelo0_disp, vardisc)
     else:
@@ -83,7 +105,7 @@ def cdfvel(x_ratio, source, population='bulge'):
         varbulge = galfunc.varbulgebulge(x_ratio, VEL_DISP_BULGE)/vc
         velocity_vec = phi_vel_vector(xi_var, bulge_mean_vel_norm, varbulge)
     cdfvel_vec = np.zeros_like(xi_var)
-    for i in enumerate(xi_var):
+    for i in range(len(xi_var)):
         cdfvel_vec[i] = np.trapz(velocity_vec[0:i], xi_var[0:i])
     return cdfvel_vec
 
