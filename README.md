@@ -3,4 +3,6 @@
 
 It requires Numpy, matplotlib, scipy and astropy.
 
+The main file to run is run_gal.py
+
 Example for parameters are provided. 
