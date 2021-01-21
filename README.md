@@ -3,4 +3,4 @@
 
 It requires Numpy, matplotlib, scipy and astropy.
 
-Example for simple samplers are provided. 
+Example for parameters are provided. 
