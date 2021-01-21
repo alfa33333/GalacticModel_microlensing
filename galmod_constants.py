@@ -10,7 +10,30 @@ from astropy import constants as const
 # event position
 LR_ANGLE_EVENT = 357.8699
 BR_ANGLE_EVENT = 2.6072
+# Example value
+#LR_ANGLE_EVENT = 359.56732242
+#BR_ANGLE_EVENT = 3.21595828
 #
+#
+#
+############################################
+
+############################################
+#  Parameters from lightcurve fitting
+############################################
+#
+TE_MEAN = 6.274
+TE_ERROR = 0.057
+#
+RHO_MEAN = 0.060464435134475955
+RHO_ERROR = 0.0006404327321859689
+#
+THETA_STAR = 16.2 #in miliarcsec
+#
+# Options from measured variables are:
+# 'TE' if only the t_e is measured
+# 'TE_RHO' if t_e and rho are measured
+MEASURE_VAR = 'TE'
 #
 ############################################
 
