@@ -28,7 +28,7 @@ TE_ERROR = 0.057
 RHO_MEAN = 0.060464435134475955
 RHO_ERROR = 0.0006404327321859689
 #
-THETA_STAR = 16.2 #in miliarcsec
+THETA_STAR = 16.2 #in micro arcsec
 #
 # Options from measured variables are:
 # 'TE' if only the t_e is measured
