@@ -6,9 +6,10 @@
 import sys
 from multiprocessing import Pool, cpu_count
 import dynesty
-from prior_definitions import prior_transform_bulge, prior_transform_disk, save_obj
+from prior_definitions import prior_transform_bulge, prior_transform_disk
 from likelihood_definitions import loglike
 from galmod_constants import MEASURE_VAR
+from utils import save_obj
 
 
 def improved_run(prior_function, population_name, dlogz=0.1, ndim=6, npdim=4):

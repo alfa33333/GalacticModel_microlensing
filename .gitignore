@@ -1,2 +1,4 @@
 __pycache__/
-run_galmod-private.py
+
+#ouput_results
+output/*

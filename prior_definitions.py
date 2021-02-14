@@ -1,24 +1,9 @@
 """
     File containing the the prior definitions for Bayesian Analysis.
 """
-import pickle
 import numpy as np
 import galmoddefinitions as galfunc
 from galmod_constants import vc, VEL_DISP_DISK, VEL_DISP_BULGE, LR_ANGLE_EVENT, BR_ANGLE_EVENT
-
-def save_obj(obj, name):
-    """
-    Method to save pickle objects.
-    """
-    with open(name + '.pkl', 'wb') as file:
-        pickle.dump(obj, file, pickle.HIGHEST_PROTOCOL)
-
-def load_obj(name):
-    """
-    Method to load pickle objects.
-    """
-    with open(name + '.pkl', 'rb') as file:
-        return pickle.load(file)
 
 X_SOURCE = np.linspace(0, 1, 10000)
 SIGMA_SOURCE_T = galfunc.source_bulge(X_SOURCE, 11000) #+ galfunc.source_disc(X_SOURCE, 11000)
