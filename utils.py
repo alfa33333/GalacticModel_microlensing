@@ -75,11 +75,17 @@ class Postprocessing():
 
     def full_postprocessing(self):
         self.basic_postprocessing()
+        self.plot_total_weighted(self.total_samples,"Total")
+        self.plot_total_weighted(self.samplesbulge_equal,"Bulge")
+        self.plot_total_weighted(self.samplesdisc_equal,"Disk")
+        self.plot_individual_weighted(self.samplesbulge_equal, self.samplesdisc_equal, self.total_samples)
 
     def basic_postprocessing(self):
         self.plot_unweighted(self.weightedouput_bulge, "bulge")
         self.plot_unweighted(self.weightedouput_disk, "disk")
-        self.samplesbulge_equal, self.samplesdisc_equal = self.run_uniform_weight(self.weightedouput_bulge, self.weightedouput_disk)
+        self.samplesbulge_equal, self.samplesdisc_equal = \
+                                self.run_uniform_weight(self.weightedouput_bulge, \
+                                                        self.weightedouput_disk)
         self.total_samples = np.vstack((self.samplesdisc_equal, self.samplesbulge_equal))
 
     @staticmethod
@@ -94,42 +100,74 @@ class Postprocessing():
         fig3.savefig("./output/"+population+"_runplot_unweighted.png")
 
     @staticmethod
+    def plot_total_weighted(samples, population):
+        figure = cr.corner(samples[:, :4], weights=samples[:, 4]/samples[:, 5], \
+          labels=[r"$\log_{10}{M_L}$", r"$D_S$", r"$DL/DS$", r"$v/v_c$"], show_titles=True)
+        figure.savefig("./output/Galmod_"+population+".png")
+
+    @staticmethod
+    def plot_individual_weighted(samplesbulge_equal, samplesdisc_equal, total_samples):
+        _, edgest, _, totala, totalb, totalc = Postprocessing.samplingadjust(samplesbulge_equal, samplesdisc_equal, total_samples, 1)
+        Postprocessing.plotadjust(samplesbulge_equal, samplesdisc_equal, \
+        total_samples, 1, totala, totalb, totalc, edgest)
+
+    @staticmethod
     def run_uniform_weight(weightedouput_bulge, weightedouput_disc):
-        samplesbulge, weightsbulge = weightedouput_bulge.samples, np.exp(weightedouput_bulge.logwt - weightedouput_bulge.logz[-1])
+        samplesbulge, weightsbulge = weightedouput_bulge.samples, \
+            np.exp(weightedouput_bulge.logwt - weightedouput_bulge.logz[-1])
         samplesbulge_equal = dyfunc.resample_equal(samplesbulge, weightsbulge)
-        samplesdisc, weightsdisc = weightedouput_disc.samples, np.exp(weightedouput_disc.logwt - weightedouput_disc.logz[-1])
+        samplesdisc, weightsdisc = weightedouput_disc.samples, \
+            np.exp(weightedouput_disc.logwt - weightedouput_disc.logz[-1])
         samplesdisc_equal = dyfunc.resample_equal(samplesdisc, weightsdisc)
         return samplesbulge_equal, samplesdisc_equal
 
     @staticmethod
-    def samplingadjust(samplesbulge_equal, samplesdisc_equal, Total_samples, column):
-        countsT, edgesT = np.histogram(Total_samples[:,column],weights=Total_samples[:,4]/Total_samples[:,5],bins=30)
-        # countsTB, edgesTB = np.histogram(san_bulge_equal[:,2],weights=san_bulge_equal[:,4],bins=edgesT)
-        # countsTD, edgesTD = np.histogram(san_disc_equal[:,2],weights=san_disc_equal[:,2],bins=edgesT)
-        Total_norm = np.sum((countsT) * np.diff(edgesT))
-        Totala = np.ones_like(Total_samples[:,column])
-        Totalb = np.ones_like(samplesbulge_equal[:,column])
-        Totalc = np.ones_like(samplesdisc_equal[:,column])
-        Totala = Total_norm*Totala
-        Totalb = Total_norm*Totalb
-        Totalc =Total_norm*Totalc
-        return countsT, edgesT, Total_norm, Totala, Totalb, Totalc
+    def samplingadjust(samplesbulge_equal, samplesdisc_equal, total_samples, column):
+        countst, edgest = np.histogram(total_samples[:, column],\
+             weights=total_samples[:, 4]/total_samples[:, 5], bins=30)
+        total_norm = np.sum((countst) * np.diff(edgest))
+        totala = np.ones_like(total_samples[:, column])
+        totalb = np.ones_like(samplesbulge_equal[:, column])
+        totalc = np.ones_like(samplesdisc_equal[:, column])
+        totala = total_norm*totala
+        totalb = total_norm*totalb
+        totalc = total_norm*totalc
+        return countst, edgest, total_norm, totala, totalb, totalc
+
+    @staticmethod
+    def plotadjust(samplesbulge_equal, samplesdisc_equal, \
+        total_samples, column, totala, totalb, totalc, edgest):
+
+        fig, ax = plt.subplots()
+
+        ax.hist(samplesbulge_equal[:, column], \
+            weights=(samplesbulge_equal[:, 4]/samplesbulge_equal[:, 5])/totalb, bins=edgest, \
+                color='r', histtype='step', fill=False, label='Bulge')
+        ax.hist(samplesdisc_equal[:, column], \
+            weights=(samplesdisc_equal[:, 4]/samplesdisc_equal[:, 5])/totalc, bins=edgest, \
+                color='b', histtype='step', fill=False, label='Disc')
+        ax.hist(total_samples[:, column], \
+            weights=(total_samples[:, 4]/total_samples[:, 5])/totala, bins=edgest, \
+                color='k', histtype='step', fill=False, label='Total')
+        ax.legend()
+        ax.set_xlabel("pc")
+        fig.suptitle("DS")
+        
+        fig.savefig('./output/DSoutputc_te.png')
     
     @staticmethod
-    def plotadjust(samplesbulge_equal, samplesdisc_equal, Total_samples, column,Totala, Totalb, Totalc, edgesT):
-        plt.hist(samplesbulge_equal[:,column],weights=(samplesbulge_equal[:,4]/samplesbulge_equal[:,5])/Totalb,bins=edgesT, color='r', histtype='step', fill=False,label = 'Bulge')
-        plt.hist(samplesdisc_equal[:,column],weights=(samplesdisc_equal[:,4]/samplesdisc_equal[:,5])/Totalc,bins=edgesT, color='b', histtype='step', fill=False,label = 'Disc')
-        plt.hist(Total_samples[:,column],weights=(Total_samples[:,4]/Total_samples[:,5])/Totala,bins=edgesT, color='k', histtype='step', fill=False, label = 'Total')
-        plt.show()
-    
-    @staticmethod
-    def integralportion(samplesbulgeb_equal, samplesdiscb_equal, Total_samplesb, edgesT, Totala, Totalb, Totalc, column ):
-        countsTx, edgesTx = np.histogram(Total_samplesb[:,column],weights=(Total_samplesb[:,4]/Total_samplesb[:,5])/Totala,bins=edgesT)
-        countsBx, edgesBx = np.histogram(samplesbulgeb_equal[:,column],weights=(samplesbulgeb_equal[:,4]/samplesbulgeb_equal[:,5])/Totalb,bins=edgesT)
-        countsDx, edgesDx = np.histogram(samplesdiscb_equal[:,column],weights=(samplesdiscb_equal[:,4]/samplesdiscb_equal[:,5])/Totalc,bins=edgesT)
-        print('Total ',np.sum((countsTx) * np.diff(edgesTx)))
-        print('Bulge ',np.sum((countsBx) * np.diff(edgesBx)))
-        print('Disc ',np.sum((countsDx) * np.diff(edgesDx)))
+    def integralportion(samplesbulgeb_equal, samplesdiscb_equal, \
+        total_samplesb, edgest, totala, totalb, totalc, column):
+
+        countstx, edgestx = np.histogram(total_samplesb[:, column], \
+            weights=(total_samplesb[:, 4]/total_samplesb[:, 5])/totala, bins=edgest)
+        countsbx, edgesbx = np.histogram(samplesbulgeb_equal[:, column], \
+            weights=(samplesbulgeb_equal[:, 4]/samplesbulgeb_equal[:, 5])/totalb, bins=edgest)
+        countsdx, edgesdx = np.histogram(samplesdiscb_equal[:, column], \
+            weights=(samplesdiscb_equal[:, 4]/samplesdiscb_equal[:, 5])/totalc, bins=edgest)
+        print('Total ', np.sum((countstx) * np.diff(edgestx)))
+        print('Bulge ', np.sum((countsbx) * np.diff(edgesbx)))
+        print('Disc ', np.sum((countsdx) * np.diff(edgesdx)))
 
 if __name__ == '__main__':
     postprocessing = Postprocessing("./output/weighted_bulge_te", "./output/weighted_disk_te")
