@@ -12,6 +12,8 @@ import corner as cr
 def save_obj(obj, name):
     """
     Method to save pickle objects.
+    input:
+        name: path with the name of the pickle without file extension.
     """
     with open(name + '.pkl', 'wb') as file:
         pickle.dump(obj, file, pickle.HIGHEST_PROTOCOL)
@@ -19,6 +21,8 @@ def save_obj(obj, name):
 def load_obj(name):
     """
     Method to load pickle objects.
+    input:
+        name: path with the name of the pickle without file extension.
     """
     with open(name + '.pkl', 'rb') as file:
         return pickle.load(file)
@@ -66,6 +70,16 @@ def plot_chain(sampler, ndim, parameter_labels, plotprefix, plot_lnprob=True, su
     plt.close()
 
 class Postprocessing():
+    """
+        Class to postprocess and obtain the total and
+        equally weighted samples produced by the main 
+        sampler.
+        input:  
+            bulge_path: path and name of the file as required by
+                    load_obj
+            disk_path: path and name of the file as required by
+                    load_obj
+    """
 
     def __init__(self, bulge_path, disk_path):
         self.weightedouput_bulge = load_obj(bulge_path)
@@ -76,6 +90,10 @@ class Postprocessing():
         
 
     def full_postprocessing(self):
+        """
+        function to run all the functions for the default
+        
+        """
         self.basic_postprocessing()
         np.save('./output/Totalsamples', self.total_samples)
         np.save('./output/bulge_samples_equal', self.samplesbulge_equal)
