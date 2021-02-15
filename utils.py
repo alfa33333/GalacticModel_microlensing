@@ -66,18 +66,23 @@ def plot_chain(sampler, ndim, parameter_labels, plotprefix, plot_lnprob=True, su
     plt.close()
 
 class Postprocessing():
+
     def __init__(self, bulge_path, disk_path):
         self.weightedouput_bulge = load_obj(bulge_path)
         self.weightedouput_disk = load_obj(disk_path)
         self.samplesbulge_equal = []
         self.samplesdisc_equal = []
         self.total_samples = []
+        
 
     def full_postprocessing(self):
         self.basic_postprocessing()
-        self.plot_total_weighted(self.total_samples,"Total")
-        self.plot_total_weighted(self.samplesbulge_equal,"Bulge")
-        self.plot_total_weighted(self.samplesdisc_equal,"Disk")
+        np.save('./output/Totalsamples', self.total_samples)
+        np.save('./output/bulge_samples_equal', self.samplesbulge_equal)
+        np.save('./output/disk_samples_equal', self.samplesdisc_equal)
+        self.plot_total_weighted(self.total_samples, "Total")
+        self.plot_total_weighted(self.samplesbulge_equal, "Bulge")
+        self.plot_total_weighted(self.samplesdisc_equal, "Disk")
         self.plot_individual_weighted(self.samplesbulge_equal, self.samplesdisc_equal, self.total_samples)
 
     def basic_postprocessing(self):
@@ -107,9 +112,19 @@ class Postprocessing():
 
     @staticmethod
     def plot_individual_weighted(samplesbulge_equal, samplesdisc_equal, total_samples):
-        _, edgest, _, totala, totalb, totalc = Postprocessing.samplingadjust(samplesbulge_equal, samplesdisc_equal, total_samples, 1)
-        Postprocessing.plotadjust(samplesbulge_equal, samplesdisc_equal, \
-        total_samples, 1, totala, totalb, totalc, edgest)
+        column = {"index":[0, 1, 2, 3], \
+            "xlabel":[r"$\log_{10}{M_L/M_\odot}$", "kpc", " ", "(100 km/s)"], \
+            "title":[r"$\log_{10}{M_L}$", r"$D_S$", r"$DL/DS$", r"$v/v_c$"], \
+            "name":["Mass", "SourceDistance", "DistanceRatio", "Velocity"], \
+            "scaling":[1, 1000, 1, 1]}
+        for i in range(4):
+            _, edgest, _, totala, totalb, totalc = \
+                Postprocessing.samplingadjust(samplesbulge_equal, samplesdisc_equal, \
+                    total_samples, column["index"][i], column["scaling"][i])
+            Postprocessing.plotadjust(samplesbulge_equal, samplesdisc_equal, \
+            total_samples, totala, totalb, totalc, edgest, column["index"][i], \
+                column["xlabel"][i], column["title"][i], column["name"][i], \
+                column["scaling"][i])
 
     @staticmethod
     def run_uniform_weight(weightedouput_bulge, weightedouput_disc):
@@ -122,8 +137,8 @@ class Postprocessing():
         return samplesbulge_equal, samplesdisc_equal
 
     @staticmethod
-    def samplingadjust(samplesbulge_equal, samplesdisc_equal, total_samples, column):
-        countst, edgest = np.histogram(total_samples[:, column],\
+    def samplingadjust(samplesbulge_equal, samplesdisc_equal, total_samples, column, scaling=1):
+        countst, edgest = np.histogram(total_samples[:, column]/scaling,\
              weights=total_samples[:, 4]/total_samples[:, 5], bins=30)
         total_norm = np.sum((countst) * np.diff(edgest))
         totala = np.ones_like(total_samples[:, column])
@@ -136,24 +151,24 @@ class Postprocessing():
 
     @staticmethod
     def plotadjust(samplesbulge_equal, samplesdisc_equal, \
-        total_samples, column, totala, totalb, totalc, edgest):
+        total_samples, totala, totalb, totalc, edgest, column, xlabel, title, name, sample_scaling=1):
 
-        fig, ax = plt.subplots()
+        fig, axis = plt.subplots()
 
-        ax.hist(samplesbulge_equal[:, column], \
+        axis.hist(samplesbulge_equal[:, column]/sample_scaling, \
             weights=(samplesbulge_equal[:, 4]/samplesbulge_equal[:, 5])/totalb, bins=edgest, \
                 color='r', histtype='step', fill=False, label='Bulge')
-        ax.hist(samplesdisc_equal[:, column], \
+        axis.hist(samplesdisc_equal[:, column]/sample_scaling, \
             weights=(samplesdisc_equal[:, 4]/samplesdisc_equal[:, 5])/totalc, bins=edgest, \
                 color='b', histtype='step', fill=False, label='Disc')
-        ax.hist(total_samples[:, column], \
+        axis.hist(total_samples[:, column]/sample_scaling, \
             weights=(total_samples[:, 4]/total_samples[:, 5])/totala, bins=edgest, \
                 color='k', histtype='step', fill=False, label='Total')
-        ax.legend()
-        ax.set_xlabel("pc")
-        fig.suptitle("DS")
+        axis.legend()
+        axis.set_xlabel(xlabel)
+        fig.suptitle(title)
         
-        fig.savefig('./output/DSoutputc_te.png')
+        fig.savefig('./output/'+name+'_output.png')
     
     @staticmethod
     def integralportion(samplesbulgeb_equal, samplesdiscb_equal, \
