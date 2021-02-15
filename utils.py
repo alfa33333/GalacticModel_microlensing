@@ -281,6 +281,7 @@ class Postprocessing():
         print('Bulge ', np.sum((countsbx) * np.diff(edgesbx)))
         print('Disc ', np.sum((countsdx) * np.diff(edgesdx)))
 
-if __name__ == '__main__':
-    postprocessing = Postprocessing("./output/weighted_bulge_te", "./output/weighted_disk_te")
-    postprocessing.full_postprocessing()
+# Example of basic use
+# if __name__ == '__main__':
+#     postprocessing = Postprocessing("./output/weighted_bulge_te", "./output/weighted_disk_te")
+#     postprocessing.full_postprocessing()
