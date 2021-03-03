@@ -458,7 +458,7 @@ def probability_rich_argument(mu_gal, dl_pc, mass, theta_ein, sourcelens_populat
     """ Returns the probability estimate for the Rich argument. In astropy quantity
     format with units rad^2/yr
     input:
-        mu_gal: proper motion in galactic coordinates as [N, E].
+        mu_gal: The relative lens-source proper motion in galactic coordinates as [N, E].
         dl_pc: Lens distance in parsecs.
         mass: lens mass in solar masses.
         theta_ein: Einstein angle in milliarcseconds.
