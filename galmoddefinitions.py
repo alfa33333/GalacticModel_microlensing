@@ -284,7 +284,7 @@ def probdisk_ds(omega, distance_source, mass, xi_var, x_ratios, sigma_total, var
 
         the variance by variable var can be chosen to be 'fixed' or 'unfixed'
     """
-    normvelo0_disp = v0abs(x_ratios, distance_source, 358.38852549, -3.31374594)/vc
+    normvelo0_disp = v0abs(x_ratios, distance_source, LR_ANGLE_EVENT, BR_ANGLE_EVENT)/vc
     #print(big_phi(x_ratios,distance_source,sigma_total,'disk'))
     #print(phi_vel_s(xi_var,normvelo0_disp,DISK_VAR_NORM))
     #print(logmass_spectrum_disc(mass)/(mass*np.log(10)))
